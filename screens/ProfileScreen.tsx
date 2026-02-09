@@ -5,10 +5,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
+  Platform,
+  StatusBar,
 } from "react-native";
 import { useAuthStore } from "../stores/authStore";
 import { signOut } from "firebase/auth";
 import { auth } from "../services/firebase";
+
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
@@ -16,6 +20,7 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      await GoogleSignin.signOut(); // Force Google account chooser next time
       await logout();
     } catch (error) {
       console.error("Logout error:", error);
@@ -77,6 +82,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8f8f8",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   header: {
     paddingHorizontal: 16,

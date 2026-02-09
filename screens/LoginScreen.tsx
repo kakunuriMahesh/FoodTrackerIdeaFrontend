@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   ScrollView,
   Platform,
+  StatusBar,
 } from "react-native";
 import { useAuthStore } from "../stores/authStore";
 import {
@@ -188,6 +189,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     justifyContent: "center",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   scrollContent: {
     flexGrow: 1,

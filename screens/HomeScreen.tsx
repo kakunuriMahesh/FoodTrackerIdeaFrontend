@@ -7,6 +7,8 @@ import {
   FlatList,
   ActivityIndicator,
   SafeAreaView,
+  Platform,
+  StatusBar,
 } from "react-native";
 import { useAuthStore } from "../stores/authStore";
 import { useFoodStore } from "../stores/foodStore";
@@ -54,7 +56,11 @@ export default function HomeScreen() {
   const handleNextDay = () => {
     const newDate = new Date(selectedDate);
     newDate.setDate(newDate.getDate() + 1);
-    setSelectedDate(newDate);
+    
+    // Prevent future dates
+    if (newDate <= new Date()) {
+      setSelectedDate(newDate);
+    }
   };
 
   const handleToday = () => {
@@ -102,8 +108,12 @@ export default function HomeScreen() {
           {isToday && <Text style={styles.todayBadge}>Today</Text>}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleNextDay} style={styles.arrowBtn}>
-          <Text style={styles.arrow}>→</Text>
+        <TouchableOpacity 
+          onPress={handleNextDay} 
+          style={[styles.arrowBtn, isToday && styles.disabledArrowBtn]}
+          disabled={isToday}
+        >
+          <Text style={[styles.arrow, isToday && styles.disabledArrow]}>→</Text>
         </TouchableOpacity>
       </View>
 
@@ -145,6 +155,7 @@ export default function HomeScreen() {
         visible={addModalVisible}
         onClose={() => setAddModalVisible(false)}
         onFoodAdded={handleFoodAdded}
+        selectedDate={selectedDate} // Pass selected date
       />
     </SafeAreaView>
   );
@@ -154,6 +165,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8f8f8",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   header: {
     paddingHorizontal: 16,
@@ -229,5 +241,11 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: "#999",
+  },
+  disabledArrowBtn: {
+    opacity: 0.3,
+  },
+  disabledArrow: {
+    color: "#ccc",
   },
 });

@@ -1,5 +1,5 @@
-import axios, { AxiosInstance } from "axios";
-import { API_URL } from "../config/constants";
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TEST_TOKEN = "test_token_12345";
 
@@ -8,17 +8,24 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      // baseURL: "http://10.10.3.53:4000", // Use computer's IP, not localhost
-      // baseURL: "http://10.166.120.183:4000", // Use computer's IP, not localhost
-      baseURL: "http://10.29.180.183:4000", // Use computer's IP, not localhost
+      baseURL: "http://10.29.180.183:4000", // Use computer's IP
       headers: { "Content-Type": "application/json" },
     });
 
-    this.client.interceptors.request.use((config) => {
-      config.headers.Authorization = `Bearer ${TEST_TOKEN}`;
-      console.log("📍 [API]", config.method?.toUpperCase(), config.url);
-      return config;
-    });
+    // Request interceptor - get token from AsyncStorage
+    this.client.interceptors.request.use(
+      async (config: InternalAxiosRequestConfig) => {
+        try {
+          // Try to get real token from AsyncStorage
+          const token = await AsyncStorage.getItem("firebaseToken");
+          config.headers.Authorization = `Bearer ${token || TEST_TOKEN}`;
+          console.log("📍 [API]", config.method?.toUpperCase(), config.url);
+        } catch (e) {
+          config.headers.Authorization = `Bearer ${TEST_TOKEN}`;
+        }
+        return config;
+      }
+    );
 
     this.client.interceptors.response.use(
       (response) => {
@@ -32,7 +39,15 @@ class ApiClient {
     );
   }
 
-  async createFood(data: { name: string; tags?: string[]; likeScore?: number; feelingText?: string; hasImage?: boolean }) {
+  // Create food with optional dateKey for specific dates
+  async createFood(data: { 
+    name: string; 
+    tags?: string[]; 
+    likeScore?: number; 
+    feelingText?: string; 
+    hasImage?: boolean;
+    dateKey?: string; // NEW: Allow specifying date
+  }) {
     return this.client.post("/food", data);
   }
 
@@ -58,6 +73,11 @@ class ApiClient {
 
   async deleteFood(id: string) {
     return this.client.delete(`/food/${id}`);
+  }
+
+  // NEW: Search food entries
+  async searchFood(query: string) {
+    return this.client.get("/food/search", { params: { q: query } });
   }
 }
 

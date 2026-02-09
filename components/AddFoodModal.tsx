@@ -19,12 +19,14 @@ interface AddFoodModalProps {
   visible: boolean;
   onClose: () => void;
   onFoodAdded: (food: FoodEntry) => void;
+  selectedDate: Date; // NEW: Accept selected date
 }
 
 export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   visible,
   onClose,
   onFoodAdded,
+  selectedDate,
 }) => {
   const { token } = useAuthStore();
   const [name, setName] = useState("");
@@ -68,13 +70,16 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
 
     setIsLoading(true);
     try {
+      const dateKey = selectedDate.toISOString().split("T")[0]; // Use selected date
+
       // 1. Create food entry (fast)
       const response = await apiClient.createFood({
         name: name.trim(),
         tags,
-        likeScore,
+        likeScore: likeScore || undefined,
         feelingText: feelingText.trim() || undefined,
         hasImage: !!imageUri,
+        dateKey, // Pass selected date to API
       });
 
       const foodId = response.data.foodId;
@@ -100,7 +105,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
         feelingText: feelingText.trim() || null,
         imageUploaded: false,
         createdAt: new Date().toISOString(),
-        dateKey: new Date().toISOString().split("T")[0],
+        dateKey, // Use selected date key
       };
 
       onFoodAdded(foodEntry);
