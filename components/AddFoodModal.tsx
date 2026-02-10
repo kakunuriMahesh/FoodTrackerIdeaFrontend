@@ -19,7 +19,7 @@ interface AddFoodModalProps {
   visible: boolean;
   onClose: () => void;
   onFoodAdded: (food: FoodEntry) => void;
-  selectedDate: Date; // NEW: Accept selected date
+  selectedDate: Date;
 }
 
 export const AddFoodModal: React.FC<AddFoodModalProps> = ({
@@ -36,11 +36,47 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [tagInput, setTagInput] = useState("");
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+
+  // Debounced tag suggestions
+  React.useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (tagInput.trim().length >= 1) {
+        try {
+          const query = tagInput.trim();
+          const response = await apiClient.getSuggestedTags(query);
+          
+          // Double-check filtering on frontend for absolute precision
+          const filteredItems = response.data.tags.filter(
+            (tag: string) => 
+              tag.toLowerCase().includes(query.toLowerCase()) && 
+              !tags.includes(tag)
+          );
+          setSuggestedTags(filteredItems);
+        } catch (error) {
+          console.error("Suggestion error:", error);
+        }
+      } else {
+        setSuggestedTags([]);
+      }
+    }, 400); // 400ms debounce
+
+    return () => clearTimeout(timer);
+  }, [tagInput, tags]);
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);
       setTagInput("");
+      setSuggestedTags([]); // Clear suggestions
+    }
+  };
+
+  const handleSelectSuggestion = (tag: string) => {
+    if (!tags.includes(tag)) {
+      setTags([...tags, tag]);
+      setTagInput("");
+      setSuggestedTags([]);
     }
   };
 
@@ -68,7 +104,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
       return;
     }
 
-    setIsLoading(true);
     try {
       const dateKey = selectedDate.toISOString().split("T")[0]; // Use selected date
 
@@ -249,6 +284,22 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                 <Text style={styles.addTagBtnText}>+</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Suggestions */}
+            {suggestedTags.length > 0 && (
+              <View style={styles.suggestionsContainer}>
+                {suggestedTags.map((tag) => (
+                  <TouchableOpacity
+                    key={tag}
+                    style={styles.suggestionChip}
+                    onPress={() => handleSelectSuggestion(tag)}
+                  >
+                    <Text style={styles.suggestionText}>{tag}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
             <View style={styles.tagsContainer}>
               {tags.map((tag) => (
                 <View key={tag} style={styles.tag}>
@@ -445,5 +496,29 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: "#666",
+  },
+  suggestionsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+    padding: 8,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  suggestionChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#e3f2fd",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#bbdefb",
+  },
+  suggestionText: {
+    fontSize: 12,
+    color: "#1976d2",
+    fontWeight: "500",
   },
 });

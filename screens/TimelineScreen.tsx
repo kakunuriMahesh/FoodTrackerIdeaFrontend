@@ -9,50 +9,77 @@ import {
   TextInput,
   Platform,
   StatusBar,
+  RefreshControl,
 } from "react-native";
 import { useFoodStore } from "../stores/foodStore";
 import { apiClient } from "../services/api";
 import { FoodCard } from "../components/FoodCard";
+import { useFocusEffect } from "@react-navigation/native";
+import { FoodEntry } from "../stores/foodStore";
 
 export default function TimelineScreen() {
-  const { historyFoods, setHistoryFoods, removeFood } = useFoodStore();
+  const { historyFoods, setHistoryFoods, appendHistoryFoods, removeFood } = useFoodStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   
+  // Use a ref to track hasMore for the check to avoid dependency loop
+  const hasMoreRef = React.useRef(true);
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
+
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
   // Fetch history
-  const fetchHistory = async (pageNum: number = 1) => {
-    if (!hasMore && pageNum > 1) return;
+  const fetchHistory = useCallback(async (pageNum: number = 1, isRefreshing = false) => {
+    if (!hasMoreRef.current && pageNum > 1 && !isRefreshing) return;
 
-    setIsLoading(true);
+    if (isRefreshing) setRefreshing(true);
+    else setIsLoading(true);
+
     try {
       const response = await apiClient.getHistory(3, pageNum);
-      const newFoods = response.data.foods;
+      const newFoods: FoodEntry[] = response.data.foods;
 
       if (pageNum === 1) {
         setHistoryFoods(newFoods);
       } else {
-        setHistoryFoods([...historyFoods, ...newFoods]);
+        appendHistoryFoods(newFoods);
       }
 
-      setHasMore(pageNum < response.data.pagination.pages);
+      const stillHasMore = pageNum < response.data.pagination.pages;
+      setHasMore(stillHasMore);
+      setPage(pageNum);
     } catch (error) {
       console.error("Error fetching history:", error);
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
+  }, [setHistoryFoods, appendHistoryFoods]);
+
+  const handleRefresh = () => {
+    setHasMore(true);
+    fetchHistory(1, true);
   };
+
+  // Refresh on focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchHistory(1);
+    }, [fetchHistory])
+  );
 
   // Search functionality
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
     
-    if (query.length < 2) {
+    if (query.trim().length < 2) {
       setSearchResults([]);
       setIsSearching(false);
       return;
@@ -60,7 +87,7 @@ export default function TimelineScreen() {
 
     setIsSearching(true);
     try {
-      const response = await apiClient.searchFood(query);
+      const response = await apiClient.searchFood(query.trim());
       setSearchResults(response.data.foods);
     } catch (error) {
       console.error("Search error:", error);
@@ -76,9 +103,8 @@ export default function TimelineScreen() {
 
   // Handle load more
   const handleLoadMore = () => {
-    if (hasMore && !isLoading && !searchQuery) {
+    if (hasMore && !isLoading && searchQuery.trim().length < 2) {
       const nextPage = page + 1;
-      setPage(nextPage);
       fetchHistory(nextPage);
     }
   };
@@ -96,7 +122,7 @@ export default function TimelineScreen() {
   };
 
   // Display data - search results or history
-  const displayData = searchQuery.length >= 2 ? searchResults : historyFoods;
+  const displayData = searchQuery.trim().length >= 2 ? searchResults : historyFoods;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -140,6 +166,9 @@ export default function TimelineScreen() {
           contentContainerStyle={styles.listContent}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
           ListFooterComponent={
             isLoading ? <ActivityIndicator size="small" color="#007AFF" /> : null
           }

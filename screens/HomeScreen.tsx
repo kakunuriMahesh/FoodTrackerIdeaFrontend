@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  RefreshControl,
 } from "react-native";
 import { useAuthStore } from "../stores/authStore";
 import { useFoodStore } from "../stores/foodStore";
@@ -18,27 +19,37 @@ import { FoodCard } from "../components/FoodCard";
 
 export default function HomeScreen() {
   const { user } = useAuthStore();
-  const { dailyFoods, setDailyFoods, addFoodToDaily, removeFood } =
+  const { dailyFoodsByDate, setDailyFoods, addFoodToDaily, removeFood } =
     useFoodStore();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [addModalVisible, setAddModalVisible] = useState(false);
 
   // Format date as YYYY-MM-DD
   const getDateKey = (date: Date) => date.toISOString().split("T")[0];
+  const dateKey = getDateKey(selectedDate);
+  const dailyFoods = dailyFoodsByDate[dateKey] || [];
 
   // Fetch daily timeline
-  const fetchDailyFoods = async (date: Date) => {
-    setIsLoading(true);
+  const fetchDailyFoods = async (date: Date, isRefreshing = false) => {
+    if (isRefreshing) setRefreshing(true);
+    else setIsLoading(true);
+
     try {
-      const dateKey = getDateKey(date);
-      const response = await apiClient.getDailyTimeline(dateKey);
-      setDailyFoods(response.data.foods);
+      const currentKey = getDateKey(date);
+      const response = await apiClient.getDailyTimeline(currentKey);
+      setDailyFoods(currentKey, response.data.foods);
     } catch (error) {
       console.error("Error fetching daily foods:", error);
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchDailyFoods(selectedDate, true);
   };
 
   // Load foods when date changes
@@ -147,6 +158,9 @@ export default function HomeScreen() {
           )}
           contentContainerStyle={styles.listContent}
           scrollEnabled
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
         />
       )}
 

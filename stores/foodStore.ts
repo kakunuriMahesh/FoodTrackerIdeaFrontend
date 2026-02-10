@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface FoodEntry {
   _id: string;
@@ -14,53 +16,100 @@ export interface FoodEntry {
 }
 
 interface FoodStore {
-  dailyFoods: FoodEntry[];
+  dailyFoodsByDate: Record<string, FoodEntry[]>; // Cached by date
   historyFoods: FoodEntry[];
   isLoading: boolean;
   error: string | null;
 
   // Actions
-  setDailyFoods: (foods: FoodEntry[]) => void;
+  setDailyFoods: (dateKey: string, foods: FoodEntry[]) => void;
   setHistoryFoods: (foods: FoodEntry[]) => void;
+  appendHistoryFoods: (foods: FoodEntry[]) => void; // For pagination
   setIsLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   addFoodToDaily: (food: FoodEntry) => void;
   updateFood: (food: FoodEntry) => void;
   removeFood: (foodId: string) => void;
-  clearDailyFoods: () => void;
+  clearAllDailyFoods: () => void;
 }
 
-export const useFoodStore = create<FoodStore>((set) => ({
-  dailyFoods: [],
-  historyFoods: [],
-  isLoading: false,
-  error: null,
+export const useFoodStore = create<FoodStore>()(
+  persist(
+    (set) => ({
+      dailyFoodsByDate: {},
+      historyFoods: [],
+      isLoading: false,
+      error: null,
 
-  setDailyFoods: (foods) => set({ dailyFoods: foods }),
-  setHistoryFoods: (foods) => set({ historyFoods: foods }),
-  setIsLoading: (isLoading) => set({ isLoading }),
-  setError: (error) => set({ error }),
+      setDailyFoods: (dateKey, foods) =>
+        set((state) => ({
+          dailyFoodsByDate: { ...state.dailyFoodsByDate, [dateKey]: foods },
+        })),
 
-  addFoodToDaily: (food) =>
-    set((state) => ({
-      dailyFoods: [food, ...state.dailyFoods],
-    })),
+      setHistoryFoods: (foods) => set({ historyFoods: foods }),
 
-  updateFood: (updatedFood) =>
-    set((state) => ({
-      dailyFoods: state.dailyFoods.map((f) =>
-        f._id === updatedFood._id ? updatedFood : f
-      ),
-      historyFoods: state.historyFoods.map((f) =>
-        f._id === updatedFood._id ? updatedFood : f
-      ),
-    })),
+      appendHistoryFoods: (newFoods) =>
+        set((state) => {
+          const combined = [...state.historyFoods, ...newFoods];
+          const unique = Array.from(
+            new Map(combined.map((item) => [item._id, item])).values()
+          );
+          return { historyFoods: unique };
+        }),
 
-  removeFood: (foodId) =>
-    set((state) => ({
-      dailyFoods: state.dailyFoods.filter((f) => f._id !== foodId),
-      historyFoods: state.historyFoods.filter((f) => f._id !== foodId),
-    })),
+      setIsLoading: (isLoading) => set({ isLoading }),
+      setError: (error) => set({ error }),
 
-  clearDailyFoods: () => set({ dailyFoods: [] }),
-}));
+      addFoodToDaily: (food) =>
+        set((state) => {
+          const dateKey = food.dateKey;
+          const existingDaily = state.dailyFoodsByDate[dateKey] || [];
+          
+          // Optimistically add to both daily and history
+          return {
+            dailyFoodsByDate: {
+              ...state.dailyFoodsByDate,
+              [dateKey]: [food, ...existingDaily],
+            },
+            historyFoods: [food, ...state.historyFoods],
+          };
+        }),
+
+      updateFood: (updatedFood) =>
+        set((state) => {
+          const dateKey = updatedFood.dateKey;
+          const existingDaily = state.dailyFoodsByDate[dateKey] || [];
+          
+          return {
+            dailyFoodsByDate: {
+              ...state.dailyFoodsByDate,
+              [dateKey]: existingDaily.map((f) =>
+                f._id === updatedFood._id ? updatedFood : f
+              ),
+            },
+            historyFoods: state.historyFoods.map((f) =>
+              f._id === updatedFood._id ? updatedFood : f
+            ),
+          };
+        }),
+
+      removeFood: (foodId) =>
+        set((state) => {
+          const newDailyByDate = { ...state.dailyFoodsByDate };
+          Object.keys(newDailyByDate).forEach((date) => {
+            newDailyByDate[date] = newDailyByDate[date].filter((f) => f._id !== foodId);
+          });
+          return {
+            dailyFoodsByDate: newDailyByDate,
+            historyFoods: state.historyFoods.filter((f) => f._id !== foodId),
+          };
+        }),
+
+      clearAllDailyFoods: () => set({ dailyFoodsByDate: {} }),
+    }),
+    {
+      name: "food-tracker-storage",
+      storage: createJSONStorage(() => AsyncStorage),
+    }
+  )
+);

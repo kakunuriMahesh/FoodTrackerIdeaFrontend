@@ -8,7 +8,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: "http://10.10.3.81:4000", // Use computer's IP
+      baseURL: "http://192.168.1.114:4000", // Use computer's IP
       headers: { "Content-Type": "application/json" },
     });
 
@@ -79,6 +79,11 @@ class ApiClient {
 
   async deleteFood(id: string) {
     return this.client.delete(`/food/${id}`);
+  }
+
+  // NEW: Get tag suggestions
+  async getSuggestedTags(query: string) {
+    return this.client.get("/food/tags/suggestions", { params: { q: query } });
   }
 
   // NEW: Search food entries
