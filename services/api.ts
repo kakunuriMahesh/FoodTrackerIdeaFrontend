@@ -8,7 +8,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: "http://10.29.180.183:4000", // Use computer's IP
+      baseURL: "http://10.10.3.81:4000", // Use computer's IP
       headers: { "Content-Type": "application/json" },
     });
 
@@ -51,8 +51,14 @@ class ApiClient {
     return this.client.post("/food", data);
   }
 
-  async uploadImage(foodId: string, imageData: string) {
-    return this.client.post(`/food/${foodId}/image`, { imageData });
+  // Updated: Upload image URL (after Cloudinary upload)
+  async uploadImage(foodId: string, imageUrl: string, publicId: string) {
+    return this.client.post(`/food/${foodId}/image`, { imageUrl, publicId });
+  }
+
+  // NEW: Get Cloudinary upload signature
+  async getUploadSignature() {
+    return this.client.get("/food/sign-upload");
   }
 
   async getDailyTimeline(date: string) {

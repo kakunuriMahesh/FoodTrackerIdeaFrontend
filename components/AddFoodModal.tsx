@@ -51,14 +51,14 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   const handlePickImage = async () => {
     const croppedImage = await imageService.pickAndCropImage("gallery");
     if (croppedImage) {
-      setImageUri(croppedImage.uri);
+      setImageUri(croppedImage.uri); // This is the local file URI
     }
   };
 
   const handleCaptureImage = async () => {
     const croppedImage = await imageService.pickAndCropImage("camera");
     if (croppedImage) {
-      setImageUri(croppedImage.uri);
+      setImageUri(croppedImage.uri); // This is the local file URI
     }
   };
 
@@ -86,26 +86,41 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
 
       // 2. Upload image async (in background)
       if (imageUri) {
-        setTimeout(() => {
-          // This runs in background
-          apiClient.uploadImage(foodId, imageUri).catch((err) => {
-            console.error("Image upload failed:", err);
-          });
-        }, 0);
+        // We do NOT await this. It runs in the background.
+        // In a real app, you might want a sync queue or background task manager.
+        setTimeout(async () => {
+          try {
+            console.log("🚀 Starting background upload for food:", foodId);
+            const uploadResult = await imageService.uploadToCloudinary(imageUri);
+            
+            if (uploadResult) {
+              await apiClient.uploadImage(
+                foodId,
+                uploadResult.secure_url,
+                uploadResult.public_id
+              );
+              console.log("✅ Background upload complete");
+            } else {
+              console.error("❌ Background upload failed (Cloudinary error)");
+            }
+          } catch (err) {
+            console.error("❌ Background upload error:", err);
+          }
+        }, 100);
       }
 
-      // 3. Return food entry immediately
+      // 3. Return food entry immediately (optimistic UI)
       const foodEntry: FoodEntry = {
         _id: foodId,
         userId: "",
         name,
-        imageUrl: null,
+        imageUrl: imageUri, // Show local image immediately
         tags,
         likeScore,
         feelingText: feelingText.trim() || null,
         imageUploaded: false,
         createdAt: new Date().toISOString(),
-        dateKey, // Use selected date key
+        dateKey,
       };
 
       onFoodAdded(foodEntry);
