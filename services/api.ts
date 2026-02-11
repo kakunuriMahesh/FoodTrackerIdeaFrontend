@@ -8,7 +8,8 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: "http://192.168.1.114:4000", // Use computer's IP
+      // baseURL: "http://10.10.1.15:4000", // Use computer's IP
+      baseURL: "https://foodtrackerideabackend.onrender.com", // Use computer's IP
       headers: { "Content-Type": "application/json" },
     });
 
