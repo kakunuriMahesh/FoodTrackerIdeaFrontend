@@ -8,8 +8,8 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      // baseURL: "http://10.10.1.15:4000", // Use computer's IP
-      baseURL: "https://foodtrackerideabackend.onrender.com", // Use computer's IP
+      baseURL: "http://192.168.1.105:4000", // Use computer's IP
+      // baseURL: "https://foodtrackerideabackend.onrender.com", // Use computer's IP
       headers: { "Content-Type": "application/json" },
     });
 
@@ -66,8 +66,10 @@ class ApiClient {
     return this.client.get("/food/timeline/daily", { params: { date } });
   }
 
-  async getHistory(days: number = 3, page: number = 1) {
-    return this.client.get("/food/timeline/history", { params: { days, page } });
+  async getHistory(days: number = 3, page: number = 1, limit?: number) {
+    const params: any = { days, page };
+    if (limit !== undefined) params.limit = limit;
+    return this.client.get("/food/timeline/history", { params });
   }
 
   async getFoodById(id: string) {
@@ -80,6 +82,12 @@ class ApiClient {
 
   async deleteFood(id: string) {
     return this.client.delete(`/food/${id}`);
+  }
+
+  // Delete user account and all associated data
+  async deleteAccount() {
+    // use new path to avoid collision with /food/:id
+    return this.client.delete(`/food/account/delete`);
   }
 
   // NEW: Get tag suggestions

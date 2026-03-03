@@ -1,8 +1,9 @@
 import React, { useEffect } from "react";
-import { StatusBar, StyleSheet } from "react-native";
+import { StatusBar, StyleSheet, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { SafeAreaProvider } from 'react-native-safe-area-context'; 
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from "./stores/authStore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./services/firebase";
@@ -13,8 +14,9 @@ import HomeScreen from "./screens/HomeScreen";
 import TimelineScreen from "./screens/TimelineScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import LoginScreen from "./screens/LoginScreen";
-
+import AboutScreen from "./screens/AboutScreen";
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   const { user, setUser, setIsLoading } = useAuthStore();
@@ -85,49 +87,56 @@ export default function App() {
     return <LoginScreen />;
   }
 
-  console.log("📱 [App] Showing MainApp (Tab Navigator)");
+  console.log("📱 [App] Showing MainApp (Stack + Tabs)");
   return (
     <SafeAreaProvider>
-    <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: "#007AFF",
-          tabBarInactiveTintColor: "#ccc",
-        }}
-      >
-        <Tab.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{
-            tabBarLabel: "Today",
-            tabBarIcon: ({ color }) => <Text style={{ color }}>🏠</Text>,
-          }}
-        />
-        <Tab.Screen
-          name="Timeline"
-          component={TimelineScreen}
-          options={{
-            tabBarLabel: "Timeline",
-            tabBarIcon: ({ color }) => <Text style={{ color }}>📅</Text>,
-          }}
-        />
-        <Tab.Screen
-          name="Profile"
-          component={ProfileScreen}
-          options={{
-            tabBarLabel: "Profile",
-            tabBarIcon: ({ color }) => <Text style={{ color }}>👤</Text>,
-          }}
-        />
-      </Tab.Navigator>
-      <StatusBar barStyle="dark-content" />
-    </NavigationContainer>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="MainTabs" component={MainTabs} />
+          <Stack.Screen name="About" component={AboutScreen} />
+        </Stack.Navigator>
+        <StatusBar barStyle="dark-content" />
+      </NavigationContainer>
     </SafeAreaProvider>
   );
 }
 
-import { Text } from "react-native";
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: "#007AFF",
+        tabBarInactiveTintColor: "#ccc",
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarLabel: "Today",
+          tabBarIcon: ({ color }) => <Text style={{ color }}>🏠</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Timeline"
+        component={TimelineScreen}
+        options={{
+          tabBarLabel: "Timeline",
+          tabBarIcon: ({ color }) => <Text style={{ color }}>📅</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: "Profile",
+          tabBarIcon: ({ color }) => <Text style={{ color }}>👤</Text>,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {

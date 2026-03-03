@@ -176,8 +176,17 @@ export default function LoginScreen() {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            By signing in, you agree to our{"\n"}Terms & Privacy Policy
+            By signing in, you agree to our
           </Text>
+          <View style={styles.footerLinks}>
+            <TouchableOpacity onPress={() => {}}>
+              <Text style={styles.linkText}>Terms</Text>
+            </TouchableOpacity>
+            <Text style={styles.linkSeparator}>|</Text>
+            <TouchableOpacity onPress={() => {}}>
+              <Text style={styles.linkText}>Privacy Policy</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -275,5 +284,20 @@ const styles = StyleSheet.create({
     color: "#999",
     textAlign: "center",
     lineHeight: 18,
+  },
+  footerLinks: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  linkText: {
+    fontSize: 12,
+    color: "#007AFF",
+    textDecorationLine: "underline",
+    marginHorizontal: 4,
+  },
+  linkSeparator: {
+    fontSize: 12,
+    color: "#999",
   },
 });

@@ -7,15 +7,35 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  Alert,
+  Linking,
 } from "react-native";
 import { useAuthStore } from "../stores/authStore";
+import { useFoodStore, FoodEntry } from "../stores/foodStore";
 import { signOut } from "firebase/auth";
 import { auth } from "../services/firebase";
+import { useNavigation } from "@react-navigation/native";
 
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { apiClient } from "../services/api";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
+  const { historyFoods, setHistoryFoods } = useFoodStore();
+  const navigation = useNavigation<any>();
+
+  // fetch history when profile loads
+  React.useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const resp = await apiClient.getHistory(0, 1, 1000); // request all entries (days=0) with high limit
+        setHistoryFoods(resp.data.foods || []);
+      } catch (e) {
+        console.error("Failed to load history for profile stats", e);
+      }
+    };
+    loadHistory();
+  }, [setHistoryFoods]);
 
   const handleLogout = async () => {
     try {
@@ -26,6 +46,38 @@ export default function ProfileScreen() {
       console.error("Logout error:", error);
       alert("Failed to logout");
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account? All your entries will be removed and this action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await apiClient.deleteAccount();
+              // clear local state as well
+              await handleLogout();
+              // reset food store caches
+              const { clearAllDailyFoods, setHistoryFoods } = useFoodStore.getState();
+              clearAllDailyFoods();
+              setHistoryFoods([]);
+            } catch (err) {
+              console.error("Delete account failed", err);
+              alert("Failed to delete account");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const openLinkPlaceholder = () => {
+    // placeholder for external URL, to be filled by user later
   };
 
   return (
@@ -44,11 +96,17 @@ export default function ProfileScreen() {
         {/* Stats Placeholder */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statValue}>{historyFoods.length}</Text>
             <Text style={styles.statLabel}>Total Foods</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statValue}>{
+              historyFoods.filter((f: FoodEntry) => {
+                const created = new Date(f.createdAt);
+                const now = new Date();
+                return now.getTime() - created.getTime() <= 7 * 24 * 60 * 60 * 1000;
+              }).length
+            }</Text>
             <Text style={styles.statLabel}>This Week</Text>
           </View>
         </View>
@@ -58,11 +116,23 @@ export default function ProfileScreen() {
           <TouchableOpacity style={styles.settingItem}>
             <Text style={styles.settingLabel}>⚙️ Settings</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity style={styles.settingItem} onPress={() => Linking.openURL("https://lemonchiffon-heron-497115.hostingersite.com/Help-Support.html")}>
             <Text style={styles.settingLabel}>❓ Help & Support</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => navigation.navigate("About")}
+          >
             <Text style={styles.settingLabel}>📋 About</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingItem} onPress={openLinkPlaceholder}>
+            <Text style={styles.settingLabel}>🔒 Privacy Policy</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingItem} onPress={openLinkPlaceholder}>
+            <Text style={styles.settingLabel}>📄 Terms & Conditions</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingItem} onPress={handleDeleteAccount}>
+            <Text style={styles.settingLabel}>🗑️ Delete Account</Text>
           </TouchableOpacity>
         </View>
 

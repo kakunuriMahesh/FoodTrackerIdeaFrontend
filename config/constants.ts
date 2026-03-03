@@ -11,8 +11,8 @@ export const FIREBASE_CONFIG = {
 // API Configuration
 // export const API_URL = "http://192.168.1.100:4000"; // Change to your backend URL
 // export const API_URL = "http://10.10.1.215:4000"; // Change to your backend URL
-// export const API_URL = "http://10.10.1.15:4000"; // Change to your backend URL
-export const API_URL = "http://https://foodtrackerideabackend.onrender.com"; // Change to your backend URL
+export const API_URL = "http://192.168.1.105:4000"; // Change to your backend URL
+// export const API_URL = "http://https://foodtrackerideabackend.onrender.com"; // Change to your backend URL
 // export const API_URL = "http://10.29.180.183:4000"; // Change to your backend URL
 // export const API_URL = "http://localhost:4000"; // Change to your backend URL
 export const API_ENDPOINTS = {
