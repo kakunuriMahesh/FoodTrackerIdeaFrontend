@@ -8,8 +8,13 @@ import { useAuthStore } from "./stores/authStore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./services/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// Screens
+// import Ionicons from "react-native-vector-icons/Ionicons";
+// Screensimport {
+import {
+  House,
+  CalendarDays,
+  User,
+} from "lucide-react-native";
 import HomeScreen from "./screens/HomeScreen";
 import TimelineScreen from "./screens/TimelineScreen";
 import ProfileScreen from "./screens/ProfileScreen";
@@ -102,39 +107,112 @@ export default function App() {
 }
 
 function MainTabs() {
-  return (
+  // return (
+  //   <Tab.Navigator
+  //     screenOptions={{
+  //       headerShown: false,
+  //       tabBarActiveTintColor: "#007AFF",
+  //       tabBarInactiveTintColor: "#ccc",
+  //     }}
+  //   >
+  //     <Tab.Screen
+  //       name="Home"
+  //       component={HomeScreen}
+  //       options={{
+  //         tabBarLabel: "Today",
+  //         tabBarIcon: ({ color }) => <Text style={{ color }}>🏠</Text>,
+  //       }}
+  //     />
+  //     <Tab.Screen
+  //       name="Timeline"
+  //       component={TimelineScreen}
+  //       options={{
+  //         tabBarLabel: "Timeline",
+  //         tabBarIcon: ({ color }) => <Text style={{ color }}>📅</Text>,
+  //       }}
+  //     />
+  //     <Tab.Screen
+  //       name="Profile"
+  //       component={ProfileScreen}
+  //       options={{
+  //         tabBarLabel: "Profile",
+  //         tabBarIcon: ({ color }) => <Text style={{ color }}>👤</Text>,
+  //       }}
+  //     />
+  //   </Tab.Navigator>
+  // );
+ return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: "#007AFF",
-        tabBarInactiveTintColor: "#ccc",
-      }}
-    >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarLabel: "Today",
-          tabBarIcon: ({ color }) => <Text style={{ color }}>🏠</Text>,
-        }}
-      />
-      <Tab.Screen
-        name="Timeline"
-        component={TimelineScreen}
-        options={{
-          tabBarLabel: "Timeline",
-          tabBarIcon: ({ color }) => <Text style={{ color }}>📅</Text>,
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarLabel: "Profile",
-          tabBarIcon: ({ color }) => <Text style={{ color }}>👤</Text>,
-        }}
-      />
-    </Tab.Navigator>
+  screenOptions={{
+    headerShown: false,
+
+    tabBarActiveTintColor: "#2E8B57",
+    tabBarInactiveTintColor: "#9CA3AF",
+
+    tabBarStyle: {
+      height: 72,
+      paddingTop: 8,
+      paddingBottom: 10,
+      backgroundColor: "#FFFFFF",
+      borderTopWidth: 1,
+      borderTopColor: "#ECECEC",
+    },
+
+    tabBarLabelStyle: {
+      fontSize: 12,
+      fontWeight: "600",
+      marginTop: 2,
+    },
+  }}
+>
+  <Tab.Screen
+    name="Home"
+    component={HomeScreen}
+    options={{
+      tabBarLabel: "Today",
+
+      tabBarIcon: ({ color, focused }) => (
+        <House
+          size={22}
+          color={color}
+          strokeWidth={focused ? 2.5 : 2}
+        />
+      ),
+    }}
+  />
+
+  <Tab.Screen
+    name="Timeline"
+    component={TimelineScreen}
+    options={{
+      tabBarLabel: "Timeline",
+
+      tabBarIcon: ({ color, focused }) => (
+        <CalendarDays
+          size={22}
+          color={color}
+          strokeWidth={focused ? 2.5 : 2}
+        />
+      ),
+    }}
+  />
+
+  <Tab.Screen
+    name="Profile"
+    component={ProfileScreen}
+    options={{
+      tabBarLabel: "Profile",
+
+      tabBarIcon: ({ color, focused }) => (
+        <User
+          size={22}
+          color={color}
+          strokeWidth={focused ? 2.5 : 2}
+        />
+      ),
+    }}
+  />
+</Tab.Navigator>
   );
 }
 
