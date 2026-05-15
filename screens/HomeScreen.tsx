@@ -10,35 +10,49 @@ import {
   Platform,
   StatusBar,
   RefreshControl,
+  Image,
 } from "react-native";
+
 import { useAuthStore } from "../stores/authStore";
 import { useFoodStore } from "../stores/foodStore";
 import { apiClient } from "../services/api";
+
 import { AddFoodModal } from "../components/AddFoodModal";
 import { FoodCard } from "../components/FoodCard";
 
+const emptyFoodImage = require("../assets/ListPad.png");
+
 export default function HomeScreen() {
   const { user } = useAuthStore();
+
   const { dailyFoodsByDate, setDailyFoods, addFoodToDaily, removeFood } =
     useFoodStore();
+
   const [selectedDate, setSelectedDate] = useState(new Date());
+
   const [isLoading, setIsLoading] = useState(false);
+
   const [refreshing, setRefreshing] = useState(false);
+
   const [addModalVisible, setAddModalVisible] = useState(false);
 
-  // Format date as YYYY-MM-DD
+  // Format date
   const getDateKey = (date: Date) => date.toISOString().split("T")[0];
+
   const dateKey = getDateKey(selectedDate);
+
   const dailyFoods = dailyFoodsByDate[dateKey] || [];
 
-  // Fetch daily timeline
+  // Fetch timeline
   const fetchDailyFoods = async (date: Date, isRefreshing = false) => {
     if (isRefreshing) setRefreshing(true);
     else setIsLoading(true);
 
     try {
       const currentKey = getDateKey(date);
+
       const response = await apiClient.getDailyTimeline(currentKey);
+
       setDailyFoods(currentKey, response.data.foods);
     } catch (error) {
       console.error("Error fetching daily foods:", error);
@@ -48,27 +62,27 @@ export default function HomeScreen() {
     }
   };
 
-  const handleRefresh = () => {
-    fetchDailyFoods(selectedDate, true);
-  };
-
-  // Load foods when date changes
   useEffect(() => {
     fetchDailyFoods(selectedDate);
   }, [selectedDate]);
 
-  // Handlers
+  const handleRefresh = () => {
+    fetchDailyFoods(selectedDate, true);
+  };
+
   const handlePrevDay = () => {
     const newDate = new Date(selectedDate);
+
     newDate.setDate(newDate.getDate() - 1);
+
     setSelectedDate(newDate);
   };
 
   const handleNextDay = () => {
     const newDate = new Date(selectedDate);
+
     newDate.setDate(newDate.getDate() + 1);
-    
-    // Prevent future dates
+
     if (newDate <= new Date()) {
       setSelectedDate(newDate);
     }
@@ -85,9 +99,11 @@ export default function HomeScreen() {
   const handleDeleteFood = async (foodId: string) => {
     try {
       await apiClient.deleteFood(foodId);
+
       removeFood(foodId);
     } catch (error) {
       console.error("Error deleting food:", error);
+
       alert("Failed to delete food");
     }
   };
@@ -103,48 +119,87 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="dark-content"
+      />
+
+      {/* ================= HEADER ================= */}
+
       <View style={styles.header}>
-        <Text style={styles.appTitle}>🍽️ Food Tracker</Text>
+        {/* <TouchableOpacity>
+          <Text style={styles.headerIcon}>☰</Text>
+        </TouchableOpacity> */}
+
+        <Text style={styles.headerTitle}>Food Tracker</Text>
+
+        <TouchableOpacity>
+          <Text style={styles.headerIcon}>🔔</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Date Selector */}
+      {/* ================= DATE SELECTOR ================= */}
+
       <View style={styles.dateSelector}>
-        <TouchableOpacity onPress={handlePrevDay} style={styles.arrowBtn}>
-          <Text style={styles.arrow}>←</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={handleToday} style={styles.dateDisplay}>
-          <Text style={styles.dateText}>{formattedDate}</Text>
-          {isToday && <Text style={styles.todayBadge}>Today</Text>}
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          onPress={handleNextDay} 
-          style={[styles.arrowBtn, isToday && styles.disabledArrowBtn]}
-          disabled={isToday}
+        <TouchableOpacity
+          onPress={handlePrevDay}
+          style={styles.dateArrowBtn}
         >
-          <Text style={[styles.arrow, isToday && styles.disabledArrow]}>→</Text>
+          <Text style={styles.dateArrow}>‹</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleToday}
+          style={styles.dateCenter}
+        >
+          <Text style={styles.dateText}>{formattedDate}</Text>
+
+          {isToday && (
+            <Text style={styles.todayText}>Today</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleNextDay}
+          disabled={isToday}
+          style={[
+            styles.dateArrowBtn,
+            isToday && styles.disabledArrowBtn,
+          ]}
+        >
+          <Text
+            style={[
+              styles.dateArrow,
+              isToday && styles.disabledArrow,
+            ]}
+          >
+            ›
+          </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Add Button */}
-      <TouchableOpacity
-        style={styles.addBtn}
-        onPress={() => setAddModalVisible(true)}
-      >
-        <Text style={styles.addBtnText}>+</Text>
-      </TouchableOpacity>
+      {/* ================= CONTENT ================= */}
 
-      {/* Foods List */}
       {isLoading ? (
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color="#2E8B57" />
         </View>
       ) : dailyFoods.length === 0 ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.emptyText}>No foods added yet</Text>
-          <Text style={styles.emptySubtext}>Tap + Add Food to get started</Text>
+        <View style={styles.emptyContainer}>
+          {/* Empty Image */}
+          <Image
+            source={emptyFoodImage}
+            style={styles.emptyImage}
+          />
+
+          <Text style={styles.emptyTitle}>
+            No foods added yet
+          </Text>
+
+          <Text style={styles.emptySubtitle}>
+            Tap + Add Food to get started
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -157,19 +212,53 @@ export default function HomeScreen() {
             />
           )}
           contentContainerStyle={styles.listContent}
-          scrollEnabled
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+            />
           }
+          showsVerticalScrollIndicator={false}
         />
       )}
 
-      {/* Add Food Modal */}
+      {/* ================= FLOATING ADD BUTTON ================= */}
+
+      {dailyFoods.length === 0 && (
+        <TouchableOpacity
+          style={styles.floatingBtn}
+          onPress={() => setAddModalVisible(true)}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.floatingBtnText}>＋</Text>
+      </TouchableOpacity>)}
+
+      {/* ================= BOTTOM NAV ================= */}
+
+      {/* <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem}>
+          <Text style={styles.activeNavIcon}>⌂</Text>
+          <Text style={styles.activeNavText}>Today</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem}>
+          <Text style={styles.navIcon}>🗓</Text>
+          <Text style={styles.navText}>Timeline</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem}>
+          <Text style={styles.navIcon}>◦</Text>
+          <Text style={styles.navText}>Profile</Text>
+        </TouchableOpacity>
+      </View> */}
+
+      {/* ================= MODAL ================= */}
+
       <AddFoodModal
         visible={addModalVisible}
         onClose={() => setAddModalVisible(false)}
         onFoodAdded={handleFoodAdded}
-        selectedDate={selectedDate} // Pass selected date
+        selectedDate={selectedDate}
       />
     </SafeAreaView>
   );
@@ -178,88 +267,202 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f8f8",
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+    backgroundColor: "#F7F8F7",
+    paddingTop:
+      Platform.OS === "android"
+        ? StatusBar.currentHeight
+        : 0,
   },
+
+  // ================= HEADER =================
+
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    height: 64,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
   },
-  appTitle: {
-    fontSize: 24,
+
+  headerTitle: {
+    fontSize: 18,
     fontWeight: "700",
+    color: "#111",
   },
+
+  headerIcon: {
+    fontSize: 20,
+    color: "#222",
+  },
+
+  // ================= DATE =================
+
   dateSelector: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 20,
+    backgroundColor: "#FFFFFF",
+  },
+
+  dateArrowBtn: {
+    width: 36,
+    height: 36,
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    justifyContent: "center",
   },
-  arrowBtn: {
-    padding: 8,
+
+  dateArrow: {
+    fontSize: 28,
+    color: "#222",
   },
-  arrow: {
-    fontSize: 24,
-  },
-  dateDisplay: {
+
+  dateCenter: {
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
+
   dateText: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111",
   },
-  todayBadge: {
-    fontSize: 11,
-    color: "#007AFF",
-    fontWeight: "600",
+
+  todayText: {
+    fontSize: 13,
+    color: "#2E8B57",
+    fontWeight: "700",
   },
-  addBtn: {
-    marginHorizontal: 16,
-    marginVertical: 12,
-    paddingVertical: 12,
-    backgroundColor: "#007AFF",
-    borderRadius: 30,
+
+  disabledArrowBtn: {
+    opacity: 0.25,
+  },
+
+  disabledArrow: {
+    color: "#999",
+  },
+
+  // ================= EMPTY =================
+
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 30,
+    marginBottom: 100,
+  },
+
+  emptyImage: {
+    width: 220,
+    height: 220,
+    resizeMode: "contain",
+    marginBottom: 24,
+  },
+
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#111",
+    marginBottom: 10,
+  },
+
+  emptySubtitle: {
+    fontSize: 15,
+    color: "#7A7A7A",
+    textAlign: "center",
+  },
+
+  // ================= LIST =================
+
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 140,
+  },
+
+  // ================= FLOATING BUTTON =================
+
+  floatingBtn: {
     position: "absolute",
-    bottom: 20,
-    right: 16,
-    left: 16,
-    zIndex: 10,
+    bottom: 95,
+    alignSelf: "center",
+
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+
+    backgroundColor: "#2E8B57",
+
+    alignItems: "center",
+    justifyContent: "center",
+
+    shadowColor: "#2E8B57",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  addBtnText: {
+
+  floatingBtnText: {
     color: "#fff",
-    fontSize: 36,
-    fontWeight: "600",
+    fontSize: 34,
+    fontWeight: "400",
+    marginTop: -2,
   },
+
+  // ================= BOTTOM NAV =================
+
+  bottomNav: {
+    height: 78,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#ECECEC",
+
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+
+  navItem: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  activeNavIcon: {
+    fontSize: 18,
+    color: "#2E8B57",
+    marginBottom: 4,
+  },
+
+  activeNavText: {
+    fontSize: 12,
+    color: "#2E8B57",
+    fontWeight: "700",
+  },
+
+  navIcon: {
+    fontSize: 18,
+    color: "#777",
+    marginBottom: 4,
+  },
+
+  navText: {
+    fontSize: 12,
+    color: "#777",
+    fontWeight: "500",
+  },
+
+  // ================= COMMON =================
+
   centerContent: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: "#999",
-  },
-  disabledArrowBtn: {
-    opacity: 0.3,
-  },
-  disabledArrow: {
-    color: "#ccc",
   },
 });
