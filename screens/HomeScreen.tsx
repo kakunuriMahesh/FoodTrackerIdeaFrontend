@@ -224,14 +224,15 @@ export default function HomeScreen() {
 
       {/* ================= FLOATING ADD BUTTON ================= */}
 
-      {dailyFoods.length === 0 && (
+      {/* {dailyFoods.length === 0 && (
+    )} */}
         <TouchableOpacity
           style={styles.floatingBtn}
           onPress={() => setAddModalVisible(true)}
           activeOpacity={0.9}
         >
           <Text style={styles.floatingBtnText}>＋</Text>
-      </TouchableOpacity>)}
+      </TouchableOpacity>
 
       {/* ================= BOTTOM NAV ================= */}
 
