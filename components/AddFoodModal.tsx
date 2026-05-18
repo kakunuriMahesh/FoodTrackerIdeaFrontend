@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   View,
@@ -9,6 +10,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   Image,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useAuthStore } from "../stores/authStore";
 import { useFoodStore, FoodEntry } from "../stores/foodStore";
@@ -29,6 +33,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   selectedDate,
 }) => {
   const { token } = useAuthStore();
+
   const [name, setName] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [likeScore, setLikeScore] = useState<number | null>(null);
@@ -38,20 +43,20 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   const [tagInput, setTagInput] = useState("");
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
 
-  // Debounced tag suggestions
   React.useEffect(() => {
     const timer = setTimeout(async () => {
       if (tagInput.trim().length >= 1) {
         try {
           const query = tagInput.trim();
+
           const response = await apiClient.getSuggestedTags(query);
-          
-          // Double-check filtering on frontend for absolute precision
+
           const filteredItems = response.data.tags.filter(
-            (tag: string) => 
-              tag.toLowerCase().includes(query.toLowerCase()) && 
+            (tag: string) =>
+              tag.toLowerCase().includes(query.toLowerCase()) &&
               !tags.includes(tag)
           );
+
           setSuggestedTags(filteredItems);
         } catch (error) {
           console.error("Suggestion error:", error);
@@ -59,16 +64,48 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
       } else {
         setSuggestedTags([]);
       }
-    }, 400); // 400ms debounce
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [tagInput, tags]);
+
+  const resetForm = () => {
+    setName("");
+    setTags([]);
+    setLikeScore(null);
+    setFeelingText("");
+    setImageUri(null);
+    setTagInput("");
+    setSuggestedTags([]);
+  };
+
+  const handleCancel = () => {
+    Alert.alert(
+      "Are you sure!",
+      "All added data will be removed.",
+      [
+        {
+          text: "No",
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          style: "destructive",
+          onPress: () => {
+            resetForm();
+            onClose();
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);
       setTagInput("");
-      setSuggestedTags([]); // Clear suggestions
+      setSuggestedTags([]);
     }
   };
 
@@ -84,18 +121,39 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
     setTags(tags.filter((t) => t !== tag));
   };
 
-  const handlePickImage = async () => {
-    const croppedImage = await imageService.pickAndCropImage("gallery");
-    if (croppedImage) {
-      setImageUri(croppedImage.uri); // This is the local file URI
-    }
+  const handleUploadImage = async () => {
+    Alert.alert("Upload Image", "Choose an option", [
+      {
+        text: "Camera",
+        onPress: async () => {
+          const croppedImage =
+            await imageService.pickAndCropImage("camera");
+
+          if (croppedImage) {
+            setImageUri(croppedImage.uri);
+          }
+        },
+      },
+      {
+        text: "Gallery",
+        onPress: async () => {
+          const croppedImage =
+            await imageService.pickAndCropImage("gallery");
+
+          if (croppedImage) {
+            setImageUri(croppedImage.uri);
+          }
+        },
+      },
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+    ]);
   };
 
-  const handleCaptureImage = async () => {
-    const croppedImage = await imageService.pickAndCropImage("camera");
-    if (croppedImage) {
-      setImageUri(croppedImage.uri); // This is the local file URI
-    }
+  const handleRemoveImage = () => {
+    setImageUri(null);
   };
 
   const handleSubmit = async () => {
@@ -105,51 +163,45 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
     }
 
     try {
-      const dateKey = selectedDate.toISOString().split("T")[0]; // Use selected date
+      setIsLoading(true);
 
-      // 1. Create food entry (fast)
+      const dateKey = selectedDate.toISOString().split("T")[0];
+
       const response = await apiClient.createFood({
         name: name.trim(),
         tags,
         likeScore: likeScore || undefined,
         feelingText: feelingText.trim() || undefined,
         hasImage: !!imageUri,
-        dateKey, // Pass selected date to API
+        dateKey,
       });
 
       const foodId = response.data.foodId;
 
-      // 2. Upload image async (in background)
       if (imageUri) {
-        // We do NOT await this. It runs in the background.
-        // In a real app, you might want a sync queue or background task manager.
         setTimeout(async () => {
           try {
-            console.log("🚀 Starting background upload for food:", foodId);
-            const uploadResult = await imageService.uploadToCloudinary(imageUri);
-            
+            const uploadResult =
+              await imageService.uploadToCloudinary(imageUri);
+
             if (uploadResult) {
               await apiClient.uploadImage(
                 foodId,
                 uploadResult.secure_url,
                 uploadResult.public_id
               );
-              console.log("✅ Background upload complete");
-            } else {
-              console.error("❌ Background upload failed (Cloudinary error)");
             }
           } catch (err) {
-            console.error("❌ Background upload error:", err);
+            console.error("Upload error:", err);
           }
         }, 100);
       }
 
-      // 3. Return food entry immediately (optimistic UI)
       const foodEntry: FoodEntry = {
         _id: foodId,
         userId: "",
         name,
-        imageUrl: imageUri, // Show local image immediately
+        imageUrl: imageUri,
         tags,
         likeScore,
         feelingText: feelingText.trim() || null,
@@ -160,12 +212,8 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
 
       onFoodAdded(foodEntry);
 
-      // Reset form
-      setName("");
-      setTags([]);
-      setLikeScore(null);
-      setFeelingText("");
-      setImageUri(null);
+      resetForm();
+
       onClose();
     } catch (error) {
       console.error("Error creating food:", error);
@@ -176,349 +224,504 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.cancelBtn}>Cancel</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Add Food</Text>
-          <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={isLoading || !name.trim()}
+    <Modal visible={visible} animationType="slide" onRequestClose={handleCancel}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View style={styles.container}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text
-              style={[
-                styles.saveBtn,
-                isLoading || !name.trim() ? styles.disabledBtn : {},
-              ]}
-            >
-              Save
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.form}>
-          {/* Food Name */}
-          <View style={styles.section}>
-            <Text style={styles.label}>Food Name *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., Idli, Dosa, Pizza"
-              placeholderTextColor="#ccc"
-              value={name}
-              onChangeText={setName}
-              editable={!isLoading}
-            />
-          </View>
-
-          {/* Image Selection */}
-          <View style={styles.section}>
-            <Text style={styles.label}>Image (Optional)</Text>
-            {imageUri && (
-              <Image source={{ uri: imageUri }} style={styles.preview} />
-            )}
-            <View style={styles.imageButtonRow}>
-              <TouchableOpacity
-                style={styles.imageBtn}
-                onPress={handleCaptureImage}
-                disabled={isLoading}
-              >
-                <Text style={styles.imageBtnText}>📷 Camera</Text>
+            {/* HEADER */}
+            <View style={styles.header}>
+              <TouchableOpacity onPress={handleCancel}>
+                <Text style={styles.cancelBtn}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.imageBtn}
-                onPress={handlePickImage}
-                disabled={isLoading}
-              >
-                <Text style={styles.imageBtnText}>🖼️ Gallery</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
 
-          {/* Like Score */}
-          <View style={styles.section}>
-            <Text style={styles.label}>How much did you like it?</Text>
-            <View style={styles.scoreRow}>
-              {[1, 2, 3, 4, 5].map((score) => (
-                <TouchableOpacity
-                  key={score}
+              <Text style={styles.title}>Add Food</Text>
+
+              <TouchableOpacity
+                onPress={handleSubmit}
+                disabled={isLoading || !name.trim()}
+              >
+                <Text
                   style={[
-                    styles.scoreBtn,
-                    likeScore === score ? styles.scoreBtnActive : {},
+                    styles.saveBtn,
+                    (isLoading || !name.trim()) && styles.disabledBtn,
                   ]}
-                  onPress={() => setLikeScore(score)}
-                  disabled={isLoading}
                 >
-                  <Text
-                    style={[
-                      styles.scoreBtnText,
-                      likeScore === score ? styles.scoreBtnTextActive : {},
-                    ]}
-                  >
-                    {score}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                  Save
+                </Text>
+              </TouchableOpacity>
             </View>
-          </View>
 
-          {/* Tags */}
-          <View style={styles.section}>
-            <Text style={styles.label}>Tags (Optional)</Text>
-            <View style={styles.tagInputRow}>
+            {/* FOOD NAME */}
+            <View style={styles.section}>
+              <Text style={styles.label}>
+                Food Name <Text style={{ color: "#EF4444" }}>*</Text>
+              </Text>
+
               <TextInput
-                style={styles.tagInput}
-                placeholder="Add tag..."
-                placeholderTextColor="#ccc"
-                value={tagInput}
-                onChangeText={setTagInput}
-                onSubmitEditing={handleAddTag}
+                style={styles.input}
+                placeholder="e.g., Idli, Dosa, Pizza"
+                placeholderTextColor="#BDBDBD"
+                value={name}
+                onChangeText={setName}
                 editable={!isLoading}
               />
+            </View>
+
+            {/* PHOTO */}
+            <View style={styles.section}>
+              <Text style={styles.label}>Add Photo (Optional)</Text>
+
+              <View style={styles.photoRow}>
+                {imageUri ? (
+                  <View style={styles.imageWrapper}>
+                    <Image
+                      source={{ uri: imageUri }}
+                      style={styles.previewImage}
+                    />
+
+                    <TouchableOpacity
+                      style={styles.removeImageBtn}
+                      onPress={handleRemoveImage}
+                    >
+                      <Text style={styles.removeImageText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </View>
+
               <TouchableOpacity
-                style={styles.addTagBtn}
-                onPress={handleAddTag}
-                disabled={isLoading}
+                style={[
+                  styles.uploadBtn,
+                  imageUri && styles.uploadBtnDisabled,
+                ]}
+                onPress={handleUploadImage}
+                disabled={!!imageUri || isLoading}
               >
-                <Text style={styles.addTagBtnText}>+</Text>
+                <Text style={styles.uploadIcon}>📤</Text>
+
+                <Text
+                  style={[
+                    styles.uploadText,
+                    imageUri && styles.uploadTextDisabled,
+                  ]}
+                >
+                  {imageUri ? "Image Uploaded" : "Upload Image"}
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Suggestions */}
-            {suggestedTags.length > 0 && (
-              <View style={styles.suggestionsContainer}>
-                {suggestedTags.map((tag) => (
-                  <TouchableOpacity
-                    key={tag}
-                    style={styles.suggestionChip}
-                    onPress={() => handleSelectSuggestion(tag)}
-                  >
-                    <Text style={styles.suggestionText}>{tag}</Text>
-                  </TouchableOpacity>
+            {/* LIKE SCORE */}
+            <View style={styles.section}>
+              <Text style={styles.label}>How much did you like it?</Text>
+
+              <Text style={styles.subLabel}>Rate your experience</Text>
+
+              <View style={styles.scoreRow}>
+                {[1, 2, 3, 4, 5].map((score) => {
+                  const active = likeScore === score;
+
+                  return (
+                    <TouchableOpacity
+                      key={score}
+                      style={[
+                        styles.scoreBtn,
+                        active && styles.scoreBtnActive,
+                      ]}
+                      onPress={() => setLikeScore(score)}
+                      disabled={isLoading}
+                    >
+                      <Text
+                        style={[
+                          styles.scoreText,
+                          active && styles.scoreTextActive,
+                        ]}
+                      >
+                        {score}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* TAGS */}
+            <View style={styles.section}>
+              <Text style={styles.label}>Tags (Optional)</Text>
+
+              <View style={styles.tagInputRow}>
+                <TextInput
+                  style={styles.tagInput}
+                  placeholder="Add tags (e.g. healthy, dinner)"
+                  placeholderTextColor="#BDBDBD"
+                  value={tagInput}
+                  onChangeText={setTagInput}
+                  onSubmitEditing={handleAddTag}
+                  editable={!isLoading}
+                />
+
+                <TouchableOpacity
+                  style={styles.addBtn}
+                  onPress={handleAddTag}
+                >
+                  <Text style={styles.addBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+
+              {suggestedTags.length > 0 && (
+                <View style={styles.suggestionsContainer}>
+                  {suggestedTags.map((tag) => (
+                    <TouchableOpacity
+                      key={tag}
+                      style={styles.suggestionChip}
+                      onPress={() => handleSelectSuggestion(tag)}
+                    >
+                      <Text style={styles.suggestionText}>{tag}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <View style={styles.tagsContainer}>
+                {tags.map((tag) => (
+                  <View key={tag} style={styles.tagChip}>
+                    <Text style={styles.tagText}>{tag}</Text>
+
+                    <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
+                      <Text style={styles.tagRemove}>×</Text>
+                    </TouchableOpacity>
+                  </View>
                 ))}
               </View>
+            </View>
+
+            {/* FEELING */}
+            <View style={styles.section}>
+              <Text style={styles.label}>How did you feel? (Optional)</Text>
+
+              <TextInput
+                style={styles.notesInput}
+                placeholder="Felt light and energetic after this meal."
+                placeholderTextColor="#BDBDBD"
+                multiline
+                numberOfLines={4}
+                value={feelingText}
+                onChangeText={setFeelingText}
+                editable={!isLoading}
+                maxLength={200}
+              />
+
+              <Text style={styles.characterCount}>
+                {feelingText.length}/200
+              </Text>
+            </View>
+
+            {isLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#22C55E" />
+                <Text style={styles.loadingText}>
+                  Creating food entry...
+                </Text>
+              </View>
             )}
-
-            <View style={styles.tagsContainer}>
-              {tags.map((tag) => (
-                <View key={tag} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                  <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
-                    <Text style={styles.tagRemove}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Feeling Text */}
-          <View style={styles.section}>
-            <Text style={styles.label}>How did you feel? (Optional)</Text>
-            <TextInput
-              style={[styles.input, styles.multilineInput]}
-              placeholder="Add notes..."
-              placeholderTextColor="#ccc"
-              value={feelingText}
-              onChangeText={setFeelingText}
-              multiline
-              numberOfLines={4}
-              editable={!isLoading}
-            />
-          </View>
-
-          {isLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#007AFF" />
-              <Text style={styles.loadingText}>Creating food entry...</Text>
-            </View>
-          )}
+          </ScrollView>
         </View>
-      </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
 
+const PRIMARY = "#2E7D32";
+const LIGHT_GREEN = "#E8F5E9";
+const BORDER = "#E5E7EB";
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
   },
+
+  scrollContent: {
+    paddingBottom: 120,
+  },
+
   header: {
+    marginTop: 52,
+    paddingHorizontal: 20,
+    paddingBottom: 18,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: "#F1F1F1",
+  },
+
+  cancelBtn: {
+    color: PRIMARY,
+    fontSize: 15,
+    fontWeight: "500",
+  },
+
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111827",
+  },
+
+  saveBtn: {
+    color: PRIMARY,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  disabledBtn: {
+    opacity: 0.4,
+  },
+
+  section: {
+    paddingHorizontal: 20,
     marginTop: 24,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  cancelBtn: {
-    fontSize: 16,
-    color: "#999",
-  },
-  saveBtn: {
-    fontSize: 16,
-    color: "#007AFF",
-    fontWeight: "600",
-  },
-  disabledBtn: {
-    color: "#ccc",
-  },
-  form: {
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
+
   label: {
     fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 8,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 10,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-  },
-  multilineInput: {
-    textAlignVertical: "top",
-    paddingTop: 10,
-  },
-  preview: {
-    width: "100%",
-    height: 250,
-    borderRadius: 8,
+
+  subLabel: {
+    fontSize: 12,
+    color: "#6B7280",
     marginBottom: 12,
   },
-  imageButtonRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  imageBtn: {
-    flex: 1,
-    paddingVertical: 12,
+
+  input: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
+    borderColor: BORDER,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 14,
+    color: "#111827",
+    backgroundColor: "#FFF",
+  },
+
+  photoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 14,
+  },
+
+  imageWrapper: {
+    position: "relative",
+  },
+
+  previewImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 12,
+  },
+
+  removeImageBtn: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#EF4444",
+    justifyContent: "center",
     alignItems: "center",
   },
-  imageBtnText: {
+
+  removeImageText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+
+  uploadBtn: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF",
+  },
+
+  uploadBtnDisabled: {
+    backgroundColor: "#F3F4F6",
+    opacity: 0.7,
+  },
+
+  uploadIcon: {
+    marginRight: 8,
+    fontSize: 16,
+  },
+
+  uploadText: {
+    color: PRIMARY,
+    fontWeight: "600",
     fontSize: 14,
   },
+
+  uploadTextDisabled: {
+    color: "#6B7280",
+  },
+
   scoreRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 8,
   },
+
   scoreBtn: {
-    flex: 1,
-    paddingVertical: 12,
+    width: 52,
+    height: 44,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
+    borderColor: BORDER,
+    justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#FFF",
   },
+
   scoreBtnActive: {
-    backgroundColor: "#FFD700",
-    borderColor: "#FFD700",
+    backgroundColor: PRIMARY,
+    borderColor: PRIMARY,
   },
-  scoreBtnText: {
-    fontSize: 16,
+
+  scoreText: {
+    fontSize: 15,
     fontWeight: "600",
-    color: "#333",
+    color: "#374151",
   },
-  scoreBtnTextActive: {
-    color: "#333",
+
+  scoreTextActive: {
+    color: "#FFFFFF",
   },
+
   tagInputRow: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
+    alignItems: "center",
+    gap: 10,
   },
+
   tagInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: BORDER,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    height: 48,
+    fontSize: 14,
+    backgroundColor: "#FFF",
+    color: "#111827",
   },
-  addTagBtn: {
-    width: 44,
+
+  addBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: PRIMARY,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#007AFF",
-    borderRadius: 8,
-    backgroundColor: "#007AFF",
   },
-  addTagBtnText: {
-    fontSize: 18,
-    color: "#fff",
+
+  addBtnText: {
+    color: "#FFF",
+    fontSize: 22,
     fontWeight: "600",
   },
-  tagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  tag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 16,
-  },
-  tagText: {
-    fontSize: 12,
-  },
-  tagRemove: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#999",
-  },
-  loadingContainer: {
-    alignItems: "center",
-    paddingVertical: 24,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: "#666",
-  },
+
   suggestionsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginBottom: 16,
-    padding: 8,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#eee",
+    marginTop: 14,
   },
+
   suggestionChip: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 20,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: "#e3f2fd",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#bbdefb",
+    paddingVertical: 8,
   },
+
   suggestionText: {
+    color: "#374151",
     fontSize: 12,
-    color: "#1976d2",
     fontWeight: "500",
+  },
+
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 14,
+  },
+
+  tagChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: LIGHT_GREEN,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+
+  tagText: {
+    color: PRIMARY,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  tagRemove: {
+    marginLeft: 6,
+    color: PRIMARY,
+    fontWeight: "700",
+    fontSize: 13,
+  },
+
+  notesInput: {
+    minHeight: 110,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 14,
+    fontSize: 14,
+    color: "#111827",
+    backgroundColor: "#FFF",
+    textAlignVertical: "top",
+  },
+
+  characterCount: {
+    textAlign: "right",
+    marginTop: 6,
+    fontSize: 11,
+    color: "#9CA3AF",
+  },
+
+  loadingContainer: {
+    marginTop: 30,
+    alignItems: "center",
+  },
+
+  loadingText: {
+    marginTop: 12,
+    color: "#6B7280",
+    fontSize: 14,
   },
 });
