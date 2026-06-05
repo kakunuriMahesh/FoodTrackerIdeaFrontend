@@ -16,13 +16,16 @@ import {
 import { useAuthStore } from "../stores/authStore";
 import { useFoodStore } from "../stores/foodStore";
 import { apiClient } from "../services/api";
+import { useNavigation } from "@react-navigation/native";
+import { CalendarDays } from "lucide-react-native";
 
-import { AddFoodModal } from "../components/AddFoodModal";
+import AddFoodModal from "../components/AddFoodModal";
 import { FoodCard } from "../components/FoodCard";
 
 const emptyFoodImage = require("../assets/ListPad.png");
 
 export default function HomeScreen() {
+  const navigation = useNavigation<any>();
   const { user } = useAuthStore();
 
   const { dailyFoodsByDate, setDailyFoods, addFoodToDaily, removeFood } =
@@ -128,14 +131,9 @@ export default function HomeScreen() {
       {/* ================= HEADER ================= */}
 
       <View style={styles.header}>
-        {/* <TouchableOpacity>
-          <Text style={styles.headerIcon}>☰</Text>
-        </TouchableOpacity> */}
-
         <Text style={styles.headerTitle}>Food Tracker</Text>
-
-        <TouchableOpacity>
-          <Text style={styles.headerIcon}>🔔</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Timeline")}>
+          <CalendarDays size={22} color="#2E8B57" strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
@@ -224,34 +222,6 @@ export default function HomeScreen() {
 
       {/* ================= FLOATING ADD BUTTON ================= */}
 
-      {/* {dailyFoods.length === 0 && (
-    )} */}
-        <TouchableOpacity
-          style={styles.floatingBtn}
-          onPress={() => setAddModalVisible(true)}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.floatingBtnText}>＋</Text>
-      </TouchableOpacity>
-
-      {/* ================= BOTTOM NAV ================= */}
-
-      {/* <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.activeNavIcon}>⌂</Text>
-          <Text style={styles.activeNavText}>Today</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navIcon}>🗓</Text>
-          <Text style={styles.navText}>Timeline</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navIcon}>◦</Text>
-          <Text style={styles.navText}>Profile</Text>
-        </TouchableOpacity>
-      </View> */}
 
       {/* ================= MODAL ================= */}
 
@@ -290,11 +260,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#111",
-  },
-
-  headerIcon: {
-    fontSize: 20,
-    color: "#222",
   },
 
   // ================= DATE =================
@@ -415,48 +380,6 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: "400",
     marginTop: -2,
-  },
-
-  // ================= BOTTOM NAV =================
-
-  bottomNav: {
-    height: 78,
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#ECECEC",
-
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-  },
-
-  navItem: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  activeNavIcon: {
-    fontSize: 18,
-    color: "#2E8B57",
-    marginBottom: 4,
-  },
-
-  activeNavText: {
-    fontSize: 12,
-    color: "#2E8B57",
-    fontWeight: "700",
-  },
-
-  navIcon: {
-    fontSize: 18,
-    color: "#777",
-    marginBottom: 4,
-  },
-
-  navText: {
-    fontSize: 12,
-    color: "#777",
-    fontWeight: "500",
   },
 
   // ================= COMMON =================

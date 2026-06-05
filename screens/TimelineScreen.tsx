@@ -317,12 +317,12 @@ export default function TimelineScreen() {
             autoCorrect={false}
           />
 
-          <TouchableOpacity>
+          {/* <TouchableOpacity>
             <SlidersHorizontal
               size={18}
               color="#666"
             />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 

@@ -26,12 +26,12 @@ interface AddFoodModalProps {
   selectedDate: Date;
 }
 
-export const AddFoodModal: React.FC<AddFoodModalProps> = ({
+export default function AddFoodModal ({
   visible,
   onClose,
   onFoodAdded,
   selectedDate,
-}) => {
+}: AddFoodModalProps){
   const { token } = useAuthStore();
 
   const [name, setName] = useState("");

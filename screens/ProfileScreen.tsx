@@ -188,8 +188,8 @@ export default function ProfileScreen() {
         {/* MENU */}
         <View style={styles.menuContainer}>
           {/* SETTINGS */}
-          <TouchableOpacity style={styles.menuItem}>
-            {/* <View style={styles.menuLeft}>
+          {/* <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuLeft}>
               <Settings
                 size={20}
                 color="#4CAF50"
@@ -199,13 +199,13 @@ export default function ProfileScreen() {
               <Text style={styles.menuText}>
                 Settings
               </Text>
-            </View> */}
+            </View>
 
             <ChevronRight
               size={20}
               color="#999"
             />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           {/* HELP */}
           <TouchableOpacity
