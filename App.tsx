@@ -9,7 +9,7 @@ import { useFoodStore } from "./stores/foodStore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./services/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { House, User } from "lucide-react-native";
+import { House, CalendarDays, User } from "lucide-react-native";
 import HomeScreen from "./screens/HomeScreen";
 import TimelineScreen from "./screens/TimelineScreen";
 import ProfileScreen from "./screens/ProfileScreen";
@@ -21,17 +21,6 @@ const Stack = createNativeStackNavigator();
 
 function AddPlaceholder() {
   return null;
-}
-
-const HomeStackNav = createNativeStackNavigator();
-
-function HomeStackScreen() {
-  return (
-    <HomeStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <HomeStackNav.Screen name="HomeDefault" component={HomeScreen} />
-      <HomeStackNav.Screen name="Timeline" component={TimelineScreen} />
-    </HomeStackNav.Navigator>
-  );
 }
 
 export default function App() {
@@ -109,6 +98,7 @@ export default function App() {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="MainTabs" component={MainTabs} />
+          <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="About" component={AboutScreen} />
         </Stack.Navigator>
         <StatusBar barStyle="dark-content" />
@@ -145,7 +135,7 @@ function MainTabs() {
       >
         <Tab.Screen
           name="Home"
-          component={HomeStackScreen}
+          component={HomeScreen}
           options={{
             tabBarLabel: "Today",
             tabBarIcon: ({ color, focused }) => (
@@ -190,12 +180,12 @@ function MainTabs() {
         />
 
         <Tab.Screen
-          name="Profile"
-          component={ProfileScreen}
+          name="Timeline"
+          component={TimelineScreen}
           options={{
-            tabBarLabel: "Profile",
+            tabBarLabel: "Timeline",
             tabBarIcon: ({ color, focused }) => (
-              <User
+              <CalendarDays
                 size={22}
                 color={color}
                 strokeWidth={focused ? 2.5 : 2}

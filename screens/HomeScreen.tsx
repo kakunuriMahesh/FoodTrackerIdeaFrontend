@@ -17,7 +17,7 @@ import { useAuthStore } from "../stores/authStore";
 import { useFoodStore } from "../stores/foodStore";
 import { apiClient } from "../services/api";
 import { useNavigation } from "@react-navigation/native";
-import { CalendarDays } from "lucide-react-native";
+import { User } from "lucide-react-native";
 
 import AddFoodModal from "../components/AddFoodModal";
 import { FoodCard } from "../components/FoodCard";
@@ -132,8 +132,8 @@ export default function HomeScreen() {
 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Food Tracker</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("Timeline")}>
-          <CalendarDays size={22} color="#2E8B57" strokeWidth={2.5} />
+        <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
+          <User size={22} color="#2E8B57" strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
