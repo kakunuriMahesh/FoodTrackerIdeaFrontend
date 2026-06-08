@@ -109,6 +109,7 @@ export default function App() {
 
 function MainTabs() {
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const addFoodToDaily = useFoodStore((s) => s.addFoodToDaily);
 
   return (
@@ -135,7 +136,6 @@ function MainTabs() {
       >
         <Tab.Screen
           name="Home"
-          component={HomeScreen}
           options={{
             tabBarLabel: "Today",
             tabBarIcon: ({ color, focused }) => (
@@ -146,7 +146,15 @@ function MainTabs() {
               />
             ),
           }}
-        />
+        >
+          {() => (
+            <HomeScreen
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              onOpenAddModal={() => setAddModalVisible(true)}
+            />
+          )}
+        </Tab.Screen>
 
         <Tab.Screen
           name="Add"
@@ -199,7 +207,7 @@ function MainTabs() {
         visible={addModalVisible}
         onClose={() => setAddModalVisible(false)}
         onFoodAdded={(food) => addFoodToDaily(food)}
-        selectedDate={new Date()}
+        selectedDate={selectedDate}
       />
     </View>
   );

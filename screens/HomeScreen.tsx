@@ -13,31 +13,34 @@ import {
   Image,
 } from "react-native";
 
-import { useAuthStore } from "../stores/authStore";
 import { useFoodStore } from "../stores/foodStore";
 import { apiClient } from "../services/api";
 import { useNavigation } from "@react-navigation/native";
 import { User } from "lucide-react-native";
 
-import AddFoodModal from "../components/AddFoodModal";
 import { FoodCard } from "../components/FoodCard";
 
 const emptyFoodImage = require("../assets/ListPad.png");
 
-export default function HomeScreen() {
+interface HomeScreenProps {
+  selectedDate: Date;
+  onDateChange: (date: Date) => void;
+  onOpenAddModal: () => void;
+}
+
+export default function HomeScreen({
+  selectedDate,
+  onDateChange,
+  onOpenAddModal,
+}: HomeScreenProps) {
   const navigation = useNavigation<any>();
-  const { user } = useAuthStore();
 
-  const { dailyFoodsByDate, setDailyFoods, addFoodToDaily, removeFood } =
+  const { dailyFoodsByDate, setDailyFoods, removeFood } =
     useFoodStore();
-
-  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const [isLoading, setIsLoading] = useState(false);
 
   const [refreshing, setRefreshing] = useState(false);
-
-  const [addModalVisible, setAddModalVisible] = useState(false);
 
   // Format date
   const getDateKey = (date: Date) => date.toISOString().split("T")[0];
@@ -78,7 +81,7 @@ export default function HomeScreen() {
 
     newDate.setDate(newDate.getDate() - 1);
 
-    setSelectedDate(newDate);
+    onDateChange(newDate);
   };
 
   const handleNextDay = () => {
@@ -87,16 +90,12 @@ export default function HomeScreen() {
     newDate.setDate(newDate.getDate() + 1);
 
     if (newDate <= new Date()) {
-      setSelectedDate(newDate);
+      onDateChange(newDate);
     }
   };
 
   const handleToday = () => {
-    setSelectedDate(new Date());
-  };
-
-  const handleFoodAdded = (newFood: any) => {
-    addFoodToDaily(newFood);
+    onDateChange(new Date());
   };
 
   const handleDeleteFood = async (foodId: string) => {
@@ -222,15 +221,13 @@ export default function HomeScreen() {
 
       {/* ================= FLOATING ADD BUTTON ================= */}
 
-
-      {/* ================= MODAL ================= */}
-
-      <AddFoodModal
-        visible={addModalVisible}
-        onClose={() => setAddModalVisible(false)}
-        onFoodAdded={handleFoodAdded}
-        selectedDate={selectedDate}
-      />
+      {/* <TouchableOpacity
+        style={styles.floatingBtn}
+        activeOpacity={0.8}
+        onPress={onOpenAddModal}
+      >
+        <Text style={styles.floatingBtnText}>＋</Text>
+      </TouchableOpacity> */}
     </SafeAreaView>
   );
 }

@@ -262,6 +262,19 @@ export default function AddFoodModal ({
               </TouchableOpacity>
             </View>
 
+            {/* DATE BANNER */}
+            <View style={styles.dateBanner}>
+              <Text style={styles.dateBannerLabel}>Date</Text>
+              <Text style={styles.dateBannerValue}>
+                {selectedDate.toLocaleDateString("en-US", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </Text>
+            </View>
+
             {/* FOOD NAME */}
             <View style={styles.section}>
               <Text style={styles.label}>
@@ -797,5 +810,31 @@ const styles = StyleSheet.create({
 
   mealTimeTextActive: {
     color: "#FFFFFF",
+  },
+
+  // ================= DATE BANNER =================
+
+  dateBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: LIGHT_GREEN,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+
+  dateBannerLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: PRIMARY,
+    marginRight: 8,
+  },
+
+  dateBannerValue: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: PRIMARY,
   },
 });
