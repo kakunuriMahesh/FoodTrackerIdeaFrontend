@@ -9,6 +9,7 @@ import {
 } from "react-native";
 
 import { FoodEntry } from "../stores/foodStore";
+import { Trash2 } from "lucide-react-native";
 
 interface FoodCardProps {
   food: FoodEntry;
@@ -57,7 +58,7 @@ export const FoodCard: React.FC<FoodCardProps> = ({
               style={styles.menuBtn}
               onPress={onDelete}
             >
-              <Text style={styles.menuText}>🚮</Text>
+              <Trash2 size={18} color="#9CA3AF" />
             </TouchableOpacity>
           )}
         </View>

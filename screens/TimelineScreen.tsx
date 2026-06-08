@@ -347,9 +347,17 @@ export default function TimelineScreen() {
     return (
       <View style={styles.dateSection}>
         {/* DATE */}
+
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <Text style={styles.dateText}>
           {formatDate(item.date)}
         </Text>
+        {!isToday && (
+          <TouchableOpacity onPress={handleToday}>
+            <Text style={styles.dateFilterClear}>Clear</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
         {/* FOODS */}
         {item.foods.map((food) => (
@@ -403,7 +411,7 @@ export default function TimelineScreen() {
 
       {/* ================= DATE FILTER BANNER ================= */}
 
-      {!isToday && (
+      {/* {!isToday && (
         <View style={styles.dateFilterBanner}>
           <Text style={styles.dateFilterText}>
             Showing foods for {formattedSelectedDate}
@@ -412,7 +420,7 @@ export default function TimelineScreen() {
             <Text style={styles.dateFilterClear}>Clear</Text>
           </TouchableOpacity>
         </View>
-      )}
+      )} */}
 
       {/* ================= CONTENT ================= */}
 
@@ -594,7 +602,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#E8F5E9",
+    // backgroundColor: "#E8F5E9",
     paddingHorizontal: 18,
     paddingVertical: 10,
   },
@@ -778,6 +786,7 @@ const styles = StyleSheet.create({
 
   dateSection: {
     marginBottom: 24,
+
   },
 
   dateText: {
