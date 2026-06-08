@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useAuthStore } from "../stores/authStore";
 import { useFoodStore, FoodEntry } from "../stores/foodStore";
+import { getDateKey } from "../utils/date";
 import { apiClient } from "../services/api";
 import { imageService } from "../services/imageService";
 
@@ -167,7 +168,7 @@ export default function AddFoodModal ({
     try {
       setIsLoading(true);
 
-      const dateKey = selectedDate.toISOString().split("T")[0];
+      const dateKey = getDateKey(selectedDate);
 
       const response = await apiClient.createFood({
         name: name.trim(),

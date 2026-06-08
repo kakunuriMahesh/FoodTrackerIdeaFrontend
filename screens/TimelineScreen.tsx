@@ -30,6 +30,7 @@ import { apiClient } from "../services/api";
 import { useFocusEffect } from "@react-navigation/native";
 import { FoodEntry } from "../stores/foodStore";
 import { FoodCard } from "../components/FoodCard";
+import { getDateKey } from "../utils/date";
 
 export default function TimelineScreen() {
   const {
@@ -81,7 +82,7 @@ export default function TimelineScreen() {
     setShowDatePicker(false);
   };
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = getDateKey(new Date());
 
   const calendarGrid = useMemo(() => {
     const year = calendarMonth.getFullYear();
@@ -297,7 +298,7 @@ export default function TimelineScreen() {
       : historyFoods;
 
     if (selectedDate) {
-      const key = selectedDate.toISOString().split("T")[0];
+      const key = getDateKey(selectedDate);
       data = data.filter((food) => food.dateKey === key);
     }
 

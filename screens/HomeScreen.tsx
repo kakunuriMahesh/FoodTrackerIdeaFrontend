@@ -19,6 +19,7 @@ import { useNavigation } from "@react-navigation/native";
 import { User } from "lucide-react-native";
 
 import { FoodCard } from "../components/FoodCard";
+import { getDateKey } from "../utils/date";
 
 const emptyFoodImage = require("../assets/ListPad.png");
 
@@ -41,9 +42,6 @@ export default function HomeScreen({
   const [isLoading, setIsLoading] = useState(false);
 
   const [refreshing, setRefreshing] = useState(false);
-
-  // Format date
-  const getDateKey = (date: Date) => date.toISOString().split("T")[0];
 
   const dateKey = getDateKey(selectedDate);
 
