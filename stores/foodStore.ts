@@ -10,6 +10,7 @@ export interface FoodEntry {
   tags: string[];
   likeScore: number | null;
   feelingText: string | null;
+  mealTime: string | null;
   imageUploaded: boolean;
   createdAt: string;
   dateKey: string;

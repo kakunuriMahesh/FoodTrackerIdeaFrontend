@@ -8,7 +8,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      // baseURL: "http://192.168.1.105:4000", // Use computer's IP
+      // baseURL: "http://10.100.21.183:4000", // Use computer's IP
       baseURL: "https://foodtrackerideabackend.onrender.com", // Use computer's IP
       headers: { "Content-Type": "application/json" },
     });
@@ -47,6 +47,7 @@ class ApiClient {
     likeScore?: number; 
     feelingText?: string; 
     hasImage?: boolean;
+    mealTime?: string;
     dateKey?: string; // NEW: Allow specifying date
   }) {
     return this.client.post("/food", data);

@@ -37,6 +37,7 @@ export default function AddFoodModal ({
   const [name, setName] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [likeScore, setLikeScore] = useState<number | null>(null);
+  const [mealTime, setMealTime] = useState<string | null>(null);
   const [feelingText, setFeelingText] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,6 +74,7 @@ export default function AddFoodModal ({
     setName("");
     setTags([]);
     setLikeScore(null);
+    setMealTime(null);
     setFeelingText("");
     setImageUri(null);
     setTagInput("");
@@ -172,6 +174,7 @@ export default function AddFoodModal ({
         tags,
         likeScore: likeScore || undefined,
         feelingText: feelingText.trim() || undefined,
+        mealTime: mealTime || undefined,
         hasImage: !!imageUri,
         dateKey,
       });
@@ -205,6 +208,7 @@ export default function AddFoodModal ({
         tags,
         likeScore,
         feelingText: feelingText.trim() || null,
+        mealTime: mealTime || null,
         imageUploaded: false,
         createdAt: new Date().toISOString(),
         dateKey,
@@ -344,6 +348,44 @@ export default function AddFoodModal ({
                         ]}
                       >
                         {score}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* MEAL TIME */}
+            <View style={styles.section}>
+              <Text style={styles.label}>Meal Time</Text>
+
+              <View style={styles.mealTimeRow}>
+                {[
+                  { value: "FN", label: "FN" },
+                  { value: "AN", label: "AN" },
+                  { value: "EV", label: "EV" },
+                  { value: "NT", label: "NT" },
+                ].map((option) => {
+                  const active = mealTime === option.value;
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.mealTimeBtn,
+                        active && styles.mealTimeBtnActive,
+                      ]}
+                      onPress={() =>
+                        setMealTime(active ? null : option.value)
+                      }
+                      disabled={isLoading}
+                    >
+                      <Text
+                        style={[
+                          styles.mealTimeText,
+                          active && styles.mealTimeTextActive,
+                        ]}
+                      >
+                        {option.label}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -723,5 +765,37 @@ const styles = StyleSheet.create({
     marginTop: 12,
     color: "#6B7280",
     fontSize: 14,
+  },
+
+  // ================= MEAL TIME =================
+
+  mealTimeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+
+  mealTimeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: "#FFF",
+  },
+
+  mealTimeBtnActive: {
+    backgroundColor: PRIMARY,
+    borderColor: PRIMARY,
+  },
+
+  mealTimeText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+  },
+
+  mealTimeTextActive: {
+    color: "#FFFFFF",
   },
 });
