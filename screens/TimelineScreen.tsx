@@ -59,30 +59,28 @@ export default function TimelineScreen() {
 
   // ================= DATE FILTER =================
 
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
-  const formattedSelectedDate = selectedDate
-    ? selectedDate.toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : null;
+  const formattedSelectedDate = selectedDate.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const isToday = getDateKey(selectedDate) === getDateKey(new Date());
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setShowDatePicker(false);
   };
 
-  const handleClearDate = () => {
-    setSelectedDate(null);
+  const handleToday = () => {
+    setSelectedDate(new Date());
     setShowDatePicker(false);
   };
-
-  const todayStr = getDateKey(new Date());
 
   const calendarGrid = useMemo(() => {
     const year = calendarMonth.getFullYear();
@@ -249,12 +247,6 @@ export default function TimelineScreen() {
     []
   );
 
-  // ================= INITIAL LOAD =================
-
-  useEffect(() => {
-    fetchHistory(1);
-  }, []);
-
   // ================= LOAD MORE =================
 
   const handleLoadMore = () => {
@@ -297,10 +289,8 @@ export default function TimelineScreen() {
       ? searchResults
       : historyFoods;
 
-    if (selectedDate) {
-      const key = getDateKey(selectedDate);
-      data = data.filter((food) => food.dateKey === key);
-    }
+    const key = getDateKey(selectedDate);
+    data = data.filter((food) => food.dateKey === key);
 
     return data;
   }, [historyFoods, searchResults, searchQuery, selectedDate]);
@@ -314,9 +304,7 @@ export default function TimelineScreen() {
     > = {};
 
     displayData.forEach((food) => {
-      const date = new Date(
-        food.createdAt
-      ).toDateString();
+      const date = food.dateKey || getDateKey(new Date(food.createdAt));
 
       if (!grouped[date]) {
         grouped[date] = [];
@@ -335,15 +323,15 @@ export default function TimelineScreen() {
 
   // ================= FORMAT DATE =================
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString(
-      "en-US",
-      {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }
-    );
+  const formatDate = (dateKey: string) => {
+    const [y, m, d] = dateKey.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
   // ================= RENDER GROUP =================
@@ -403,11 +391,11 @@ export default function TimelineScreen() {
             autoCorrect={false}
           />
 
-          <TouchableOpacity onPress={() => { setCalendarMonth(selectedDate || new Date()); setShowDatePicker(true); }}>
+          <TouchableOpacity onPress={() => { setCalendarMonth(selectedDate); setShowDatePicker(true); }}>
             <CalendarDays
               size={20}
-              color={selectedDate ? "#2E8B57" : "#888"}
-              strokeWidth={selectedDate ? 2.5 : 2}
+              color="#2E8B57"
+              strokeWidth={2.5}
             />
           </TouchableOpacity>
         </View>
@@ -415,12 +403,12 @@ export default function TimelineScreen() {
 
       {/* ================= DATE FILTER BANNER ================= */}
 
-      {selectedDate && (
+      {!isToday && (
         <View style={styles.dateFilterBanner}>
           <Text style={styles.dateFilterText}>
             Showing foods for {formattedSelectedDate}
           </Text>
-          <TouchableOpacity onPress={handleClearDate}>
+          <TouchableOpacity onPress={handleToday}>
             <Text style={styles.dateFilterClear}>Clear</Text>
           </TouchableOpacity>
         </View>
@@ -560,10 +548,10 @@ export default function TimelineScreen() {
 
             <View style={styles.dateActions}>
               <TouchableOpacity
-                onPress={handleClearDate}
-                style={styles.dateActionBtn}
+                onPress={handleToday}
+                style={[styles.dateActionBtn, styles.dateActionBtnPrimary]}
               >
-                <Text style={styles.dateActionBtnText}>Show All</Text>
+                <Text style={[styles.dateActionBtnText, styles.dateActionBtnTextPrimary]}>Today</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
